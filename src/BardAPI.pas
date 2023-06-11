@@ -60,6 +60,24 @@ const
   CTimeOutSecs =  CTimeOutBase * 3; // secs
 
 type
+  { TBardAPIImageItem }
+  TBardAPIImageItem = record
+    ImageUrl: string;
+    RefUrl: string;
+  end;
+
+  { TBardAPIImageList }
+  TBardAPIImageList = array of TBardAPIImageItem;
+
+  { TBardAPICodeItem }
+  TBardAPICodeItem = record
+    Language: string;
+    Code: string;
+  end;
+
+  { TBardAPICodeList }
+  TBardAPICodeList = array of TBardAPICodeItem;
+
   { TBardAPIConversationProc }
   TBardAPIConversationProc = procedure(const ASender: Pointer;
     const AConversationTitle, AConversationID, AResponseID, AChoiceID: string);
@@ -88,6 +106,8 @@ type
     FSetConversationFlag: Boolean;
     FOnNewConversation: TBardAPIConversationEventHandler;
     FOnSetConversation: TBardAPIConversationEventHandler;
+    FImageList: TBardAPIImageList;
+    FCodeList: TBardAPICodeList;
     function  FindJsonValue(const AValue: TJSONValue;
       const APath: string): TJSONValue;
     function  GenAccessToken: string;
@@ -97,7 +117,7 @@ type
     procedure DoSetConversation;
     procedure SetCustomHeaders(const ASession: THttpClient);
     function  SanitizeToJson(const aText: string): string;
-    function  SanitizeFromJson(const aText: string): string;    
+    function  SanitizeFromJson(const aText: string): string;
     function  ExplodeString(const ADelimiter, AStr: string): TArray<string>;
     function  BuildHttpQuery(const AParams: TStrings): string;
     function  ExtractImageUrl(const AUrl: string): string;
@@ -109,11 +129,18 @@ type
     property Success: Boolean read FSuccess;
     property Question: string read FQuestion write FQuestion;
     property Answer: string read FAnswer;
+    property ImageList: TBardAPIImageList read FImageList;
+    property CodeList: TBardAPICodeList read FCodeList;
 
     procedure SetProxy(const aHost: string; aPort: Integer;
       const aUserName: string = ''; const aPassword: string = '';
       const AScheme: string = '');
     procedure Query;
+    function  SaveConversation(const AFilename: string): Boolean;
+    function  LoadConversation(const AFilename: string): Boolean;
+    procedure ClearConversation;
+    procedure SetConversation(const AConversationID, AResponseID, AChoiceID,
+      AConversationTitle: string);
 
     class function GetDataPath: string;
   end;
@@ -431,10 +458,98 @@ var
   LText: string;
   LFReq: TJSonArray;
   I: Integer;
-  LResponse: IHttpResponse;  
+  LResponse: IHttpResponse;
+
+  procedure GetImages;
+  var
+    LJson: TJsonArray;
+    LText: string;
+    I: Integer;
+
+  begin
+    LText := FindJsonValue(LParsedAnswer, '[4][0][4]').ToString;
+    if LText = 'null' then Exit;
+
+    LJson := TJSONArray.ParseJSONValue(LText) as TJSONArray;
+    try
+      SetLength(FImageList, LJson.Count);
+      for I := 0 to LJson.Count-1 do
+      begin
+        // image url
+        FImageList[I].ImageUrl := ExtractImageUrl(FindJsonValue(LJson,
+          Format('[%d][0][0][0]', [I])).Value);
+
+        // image reference url
+        FImageList[I].RefUrl := FindJsonValue(LJson, Format('[%d][1][0][0]',
+          [I])).Value;
+      end;
+    finally
+      LJson.Free;
+    end;
+  end;
+
+  procedure GetCode;
+  const
+    CodeMarker = '```';
+  var
+    StartIndex, EndIndex: Integer;
+    StartPos, EndPos, CodeBlockCount: Integer;
+    LCodeItem: TBardAPICodeItem;
+    CodeBlock: string;
+  begin
+    // Find the first starting code marker
+    StartIndex := Pos(CodeMarker, FAnswer);
+    if StartIndex = 0 then Exit;
+
+    CodeBlockCount := 0;
+    StartPos := StartIndex + Length(CodeMarker);
+
+    repeat
+      // Find the ending code marker
+      EndIndex := PosEx(CodeMarker, FAnswer, StartPos);
+      if EndIndex = 0 then Break;
+
+      // Extract the code block
+      CodeBlock := Trim(Copy(FAnswer, StartPos, EndIndex - StartPos));
+
+      // Determine if language is present
+      if (StartPos < Length(FAnswer)) and (FAnswer[StartPos] <> #10) then
+        begin
+          // Extract the language
+          EndPos := Pos(#10, CodeBlock);
+          if EndPos > 0 then
+            begin
+              LCodeItem.Language := Trim(Copy(CodeBlock, 1, EndPos - 1));
+              CodeBlock := Trim(Copy(CodeBlock, EndPos + 1, Length(CodeBlock) - EndPos));
+            end
+          else
+            begin
+              LCodeItem.Language := ''; // No language specified
+            end;
+        end
+      else
+        begin
+          LCodeItem.Language := ''; // No language specified
+        end;
+
+      Inc(CodeBlockCount);
+      SetLength(FCodeList, CodeBlockCount);
+      LCodeItem.Code := CodeBlock;
+      FCodeList[CodeBlockCount - 1] := LCodeItem;
+
+      // Find the next starting code marker
+      StartIndex := PosEx(CodeMarker, FAnswer, EndIndex + Length(CodeMarker));
+      if StartIndex = 0 then Break;
+
+      StartPos := StartIndex + Length(CodeMarker);
+    until False;
+  end;
+
 begin
-  // set success to false
+  // init variables
   FSuccess := False;
+  FImageList := nil;
+  FCodeList := nil;
 
   // check for valid question
   if FQuestion.IsEmpty then
@@ -563,11 +678,9 @@ begin
         end;
 
         // get images
-        // TODO:
+        GetImages;
 
         // get response answer
-        //FAnswer := LParsedAnswer.P['[0][0]'].Value;
-
         FAnswer := FindJsonValue(LParsedAnswer, '[0][0]').Value;
 
         // get conversation id
@@ -583,7 +696,7 @@ begin
         FReqID := FReqID + 100000;
 
         // get code
-        // TODO:
+        GetCode;
 
         // check if this is a new conversation
         if FLastConversationID <> FConversationID then
@@ -634,5 +747,71 @@ begin
   end;
 end;
 
+function TBardAPI.SaveConversation(const AFilename: string): Boolean;
+var
+  LSession: TStringList;
+  LFilename: string;
+begin
+  Result := False;
+  if aFilename.IsEmpty then Exit;
+  LFilename := TPath.ChangeExtension(AFilename, 'txt');
+
+  LSession := TStringList.Create;
+  try
+    LSession.AddPair('ConversationID', FConversationID);
+    LSession.AddPair('ResponseID', FResponseID);
+    LSession.AddPair('ChoiceID', FChoiceID);
+    LSession.AddPair('ConversationTitle', FConversationTitle);
+    LSession.SaveToFile(LFilename);
+    Result := TFile.Exists(LFilename);
+  finally
+    LSession.Free;
+  end;
+end;
+
+function TBardAPI.LoadConversation(const AFilename: string): Boolean;
+var
+  LSession: TStringList;
+  LFilename: string;
+begin
+  Result := False;
+  if aFilename.IsEmpty then Exit;
+  LFilename := TPath.ChangeExtension(AFilename, 'txt');
+
+  LSession := TStringList.Create;
+  try
+    LSession.LoadFromFile(LFilename);
+    ClearConversation;
+    SetConversation(
+      LSession.Values['ConversationID'],
+      LSession.Values['ResponseID'],
+      LSession.Values['ChoiceID'],
+      LSession.Values['ConversationTitle']);
+    Result := True;
+  finally
+    LSession.Free;
+  end;
+end;
+
+procedure TBardAPI.ClearConversation;
+begin
+  FConversationID := '';
+  FResponseID := '';
+  FChoiceID := '';
+  FConversationTitle := '';
+  FLastConversationID := '';
+  FSetConversationFlag := False;
+end;
+
+procedure TBardAPI.SetConversation(const AConversationID, AResponseID,
+  AChoiceID, AConversationTitle: string);
+begin
+  FConversationID := AConversationID;
+  FResponseID := AResponseID;
+  FChoiceID := AChoiceID;
+  FConversationTitle := AConversationTitle;
+  FLastConversationID := AConversationID;
+  FSetConversationFlag := True;
+end;
 
 end.

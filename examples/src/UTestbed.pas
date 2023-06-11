@@ -59,6 +59,8 @@ procedure Test01;
 var
   LBardAPI: TBardAPI;
   LPrompt: string;
+  LImage: TBardAPIImageItem;
+  LCode: TBardAPICodeItem;
 begin
   WriteLn('Hi, I am Bard. How may I help you?'#10#13);
 
@@ -95,7 +97,31 @@ begin
       if LBardAPI.Success then
         begin
           // success - response to query will be in TBardAPI.Answer
-          WriteLn(#13#10'A: ', LBardAPI.Answer, #13#10);
+          WriteLn(#13#10'A: ', LBardAPI.Answer);
+
+          // check for images
+          if Assigned(LBardAPI.ImageList) then
+          begin
+            WriteLn;
+            for LImage in LBardAPI.ImageList do
+            begin
+              WriteLn(Format('%s (%s)', [LImage.ImageUrl, LImage.RefUrl]));
+            end;
+          end;
+
+          // check for code
+          if Assigned(LBardAPI.CodeList) then
+          begin
+            WriteLn('===[ Code Blocks ] ==============================');
+            for LCode in LBardAPI.CodeList do
+            begin
+              WriteLn('Language: ', LCode.Language);
+              WriteLn(LCode.Code);
+            end;
+            WriteLn('-------------------------------------------------');
+          end;
+
+          WriteLn;
         end
       else
         begin
