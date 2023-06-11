@@ -89,6 +89,9 @@ BardAPI can open a WebView2 window and allow you to logo into the Bard website t
 ### Important Notice
 The user assumes all legal responsibilities associated with using the BardAPI class. This Pascal class merely facilitates easy access to Google Bard for developers. Users are solely responsible for managing data and using the package appropriately. For further information, please consult the Google Bard Official Document.
 
+### Caution
+This is not an official Google API service. It is not affiliated with Google and uses Google account cookies, which means that excessive or commercial usage may result in restrictions on your Google account. It should not be misused or abused.
+
 ### Support
 - <a href="https://github.com/tinyBigGAMES/BardAPI/issues" target="_blank">Issues</a>
 - <a href="https://github.com/tinyBigGAMES/BardAPI/discussions" target="_blank">Discussions</a>
