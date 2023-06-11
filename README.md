@@ -94,9 +94,10 @@ The user assumes all legal responsibilities associated with using the BardAPI cl
 - <a href="https://tinybiggames.com/" target="_blank">tinyBigGAMES Homepage</a>
 
 <p align="center">
-<img src="media/delphi.png" alt="Delphi">
+<img src="media/Delphi.png" alt="Delphi">
 </p>
 <h5 align="center">
+
 Made with :heart: for Delphi
 </h5>
 
