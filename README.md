@@ -83,6 +83,8 @@ end;
 ```
 
 ### Media
+BardAPI can open a WebView2 window and allow you to logo into the Bard website to generated and fetch an AccessToken for use.
+![BardAPI AccessToken](media/BardAPIAccessToken.jpg)  
 
 ### Important Notice
 The user assumes all legal responsibilities associated with using the BardAPI class. This Pascal class merely facilitates easy access to Google Bard for developers. Users are solely responsible for managing data and using the package appropriately. For further information, please consult the Google Bard Official Document.
