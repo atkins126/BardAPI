@@ -97,6 +97,6 @@ The user assumes all legal responsibilities associated with using the BardAPI cl
 <img src="media/delphi.png" alt="Delphi">
 </p>
 <h5 align="center">
-
 Made with :heart: for Delphi
 </h5>
+
