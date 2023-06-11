@@ -84,7 +84,7 @@ end;
 
 ### Media
 
-### Important Notice
+### Notice
 The user assumes all legal responsibilities associated with using the BardAPI class. This Pascal class merely facilitates easy access to Google Bard for developers. Users are solely responsible for managing data and using the package appropriately. For further information, please consult the Google Bard Official Document.
 
 ### Support

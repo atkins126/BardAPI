@@ -67,3 +67,6 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+
+# BardAPI
+!examples/bin/WebView2Loader.dll
