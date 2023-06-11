@@ -86,6 +86,11 @@ end;
 BardAPI can open a WebView2 window and allow you to logo into the Bard website to generated and fetch an AccessToken for use.
 ![BardAPI AccessToken](media/BardAPIAccessToken.jpg)  
 
+
+This is an example of how you can have a contextual conversation with Bard using the API.
+
+https://github.com/tinyBigGAMES/BardAPI/assets/69952438/ec1e3e85-b7ac-4320-8cd4-ce1b97859a3c
+
 ### Important Notice
 The user assumes all legal responsibilities associated with using the BardAPI class. This Pascal class merely facilitates easy access to Google Bard for developers. Users are solely responsible for managing data and using the package appropriately. For further information, please consult the Google Bard Official Document.
 
