@@ -681,7 +681,7 @@ begin
         GetImages;
 
         // get response answer
-        FAnswer := FindJsonValue(LParsedAnswer, '[0][0]').Value;
+        FAnswer := FindJsonValue(LParsedAnswer, '[4][0][1][0]').Value;
 
         // get conversation id
         FConversationID := FindJsonValue(LParsedAnswer, '[1][0]').Value;
